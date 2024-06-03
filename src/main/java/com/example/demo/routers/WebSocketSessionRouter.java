@@ -33,7 +33,7 @@ public class WebSocketSessionRouter {
 		resultJson.put("method", routeDto.getMethod());
 		if("ROOM_CHANGE".equals(routeDto.getMethod())) {
 			Sessions.WS_LIST_BY_MAP.get(routeDto.getRoom()).remove(webSocketSession);
-			Sessions.WS_LIST_BY_MAP.get(routeDto.getData()).add(webSocketSession);
+			Sessions.WS_LIST_BY_MAP.get(routeDto.getData()).add(webSocketSession); 
 			resultJson.put("result", 1 );
 			resultJson.put("data", JSONObject.NULL);
 		} else if("MSG_SEND".equals(routeDto.getMethod())){
@@ -61,7 +61,7 @@ public class WebSocketSessionRouter {
 				thread.start();
 			} else {
 				Thread thread = new Thread(()->{
-		    		Sessions.WS_LIST_BY_MAP.get(dataJson.get("room"))
+		    		Sessions.WS_LIST_BY_MAP.get(routeDto.getRoom())
 		    			.parallelStream()
 		    			.forEach(wsSession -> wsSession.send(Mono.just(webSocketSession.textMessage(dataJson.toString())))
 							.onErrorResume(e->{ 
