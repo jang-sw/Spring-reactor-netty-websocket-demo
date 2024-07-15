@@ -29,13 +29,12 @@ public class DemoWebSocketHandler implements WebSocketHandler {
 	        session.receive()
 	            .flatMap(message -> webSocketSessionRouter.route(message.getPayloadAsText(), session))
 				).onErrorResume(e->{ 
-					if((e instanceof AbortedException && e.getMessage().contains("closed"))||
-							e instanceof ArrayIndexOutOfBoundsException || e instanceof IndexOutOfBoundsException || e instanceof NullPointerException) {
-						return Mono.empty();
-					} else {
-     					e.printStackTrace();
-     					return Mono.empty();
-     				}
+					if(!((e instanceof AbortedException && e.getMessage().contains("closed"))||
+							e instanceof ArrayIndexOutOfBoundsException || e instanceof IndexOutOfBoundsException || e instanceof NullPointerException)) {
+						e.printStackTrace();
+					} 
+ 					return Mono.empty();
+     				
          		}).doOnSubscribe(subscription -> afterConnectionEstablished(session))
 		        .doOnTerminate(() -> afterConnectionClosed(session));
     }

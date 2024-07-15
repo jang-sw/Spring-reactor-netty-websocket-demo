@@ -12,6 +12,7 @@ import org.springframework.web.reactive.socket.WebSocketSession;
 
 import com.example.demo.dto.RouteDto;
 import com.example.demo.global.Sessions;
+import com.example.demo.util.GlobalUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -31,52 +32,25 @@ public class WebSocketSessionRouter {
 		RouteDto routeDto = msgMapping(payload);
 		JSONObject resultJson = new JSONObject();
 		resultJson.put("method", routeDto.getMethod());
+		
 		if("ROOM_CHANGE".equals(routeDto.getMethod())) {
+			//룸 변경
 			Sessions.WS_LIST_BY_MAP.get(routeDto.getRoom()).remove(webSocketSession);
-			Sessions.WS_LIST_BY_MAP.get(routeDto.getData()).add(webSocketSession); 
+			Sessions.WS_LIST_BY_MAP.get(routeDto.getData()).add(webSocketSession);
 			resultJson.put("result", 1 );
 			resultJson.put("data", JSONObject.NULL);
 		} else if("MSG_SEND".equals(routeDto.getMethod())){
+			//메세지 전송
 			resultJson.put("result", 1 );
 			resultJson.put("data", routeDto.getData());
-			
 			JSONObject dataJson = new JSONObject();
 			dataJson.put("method", "MSG_RECIEVE");
 			dataJson.put("data", routeDto.getData());
-			if("-1".equals(routeDto.getRoom())) {
-				Thread thread = new Thread(()->{
-		    		Sessions.WS_LIST
-		    			.parallelStream()
-		    			.forEach(wsSession -> wsSession.send(Mono.just(webSocketSession.textMessage(dataJson.toString())))
-							.onErrorResume(e->{ 
-								if((e instanceof AbortedException && e.getMessage().contains("closed"))||
-										e instanceof ArrayIndexOutOfBoundsException || e instanceof IndexOutOfBoundsException || e instanceof NullPointerException) {
-									return Mono.empty();
-								} else {
-			     					e.printStackTrace();
-			     					return Mono.empty();
-			     				}
-			         		}).subscribe());
-		    		});
-				thread.start();
-			} else {
-				Thread thread = new Thread(()->{
-		    		Sessions.WS_LIST_BY_MAP.get(routeDto.getRoom())
-		    			.parallelStream()
-		    			.forEach(wsSession -> wsSession.send(Mono.just(webSocketSession.textMessage(dataJson.toString())))
-							.onErrorResume(e->{ 
-								if((e instanceof AbortedException && e.getMessage().contains("closed"))||
-										e instanceof ArrayIndexOutOfBoundsException || e instanceof IndexOutOfBoundsException || e instanceof NullPointerException) {
-									return Mono.empty();
-								} else {
-			     					e.printStackTrace();
-			     					return Mono.empty();
-			     				}
-			         		}).subscribe());
-		    		});
-				thread.start();
-			}
 			
+			//전체 메세지
+			if("-1".equals(routeDto.getRoom())) GlobalUtil.sendMsg(dataJson, webSocketSession, Sessions.WS_LIST);
+			//룸 지정 메세지
+			else GlobalUtil.sendMsg(dataJson, webSocketSession, Sessions.WS_LIST_BY_MAP.get(dataJson.get("room")));
 		}else {
 			resultJson.put("result", -1);
 			resultJson.put("data", JSONObject.NULL);
